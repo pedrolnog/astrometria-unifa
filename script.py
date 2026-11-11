@@ -28,6 +28,36 @@ def calcular_anom_verdadeira(e, E):
 
     return np.arctan2(math.sqrt(1 - e**2) * math.sin(E), math.cos(E) - e)
 
+def Rz(theta: float) -> np.ndarray:
+    c = np.cos(theta)
+    s = np.sin(theta)
+    return np.array([
+        [ c,  s, 0.0],
+        [-s,  c, 0.0],
+        [0.0, 0.0, 1.0]
+    ])
+
+def Rx(theta: float) -> np.ndarray:
+    c = np.cos(theta)
+    s = np.sin(theta)
+    return np.array([
+        [1.0, 0.0, 0.0],
+        [0.0,  c,  s],
+        [0.0, -s,  c]
+    ])
+
+# Calcula a posição inercial do satélite usando, respectivamente o
+# Semieixo maior, excentricidade e anomalia verdadeira
+# Longitude do nó ascendente, inclinação e argumento do perigeu
+def calcular_pos_inercial(a, e, v, omega, i, w):
+    r = (a * (1 - e**2))/(1 + e * math.cos(v))
+
+    r_pqw = np.array([r * math.cos(v)], [r * math.sin(v)], [0])
+
+    Q = Rz(-omega) @ Rx(-i) @ Rz(-w)
+
+    r_eci = Q @ r_pqw
+
 load_dotenv()
 
 # Coordenadas do observador
