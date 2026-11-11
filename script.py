@@ -1,9 +1,33 @@
+from astropy.coordinates import EarthLocation
 from skyfield.api import EarthSatellite, load
+from datetime import datetime, UTC
 from dotenv import load_dotenv
+from astropy.time import Time
+import astropy.units as u
 import numpy as np
 import requests
 import math
 import os
+
+load_dotenv()
+
+# Coordenadas do observador
+OBS_LATITUDE=-9.39
+OBS_LONGITUDE=-40.50
+OBS_ALTITUDE=376 # Altitude em metros
+
+# ID do satélite
+NORAD_ID = 47699
+
+API_KEY = os.environ.get("N2YO_API_KEY")
+
+# Constantes
+PRIMEIRA_EXC_QUAD_TERRA=0.00669437999
+
+# Semieixo da terra (em km)
+SEMIEIXO_MAIOR_TERRA=6378.137
+SEMIEIXO_MENOR_TERRA=6356.752
+
 
 def traduzir_tle(name : str, tle : tuple):
     ts = load.timescale()
@@ -11,6 +35,7 @@ def traduzir_tle(name : str, tle : tuple):
     satellite = EarthSatellite(tle[0], tle[1], name, ts)
     return satellite
 
+# Resolve a equação de Kepler usando o método Newton-Raphson
 def resolver_kepler(M : float, e : float, tol=1e-10, max_iter=50):
     E = M
 
@@ -28,6 +53,7 @@ def calcular_anom_verdadeira(e, E):
 
     return np.arctan2(math.sqrt(1 - e**2) * math.sin(E), math.cos(E) - e)
 
+# Cria uma das matrizes de transformação para calcular posição inercial
 def Rz(theta: float) -> np.ndarray:
     c = np.cos(theta)
     s = np.sin(theta)
@@ -37,6 +63,7 @@ def Rz(theta: float) -> np.ndarray:
         [0.0, 0.0, 1.0]
     ])
 
+# Cria uma das matrizes de transformação para calcular posição inercial
 def Rx(theta: float) -> np.ndarray:
     c = np.cos(theta)
     s = np.sin(theta)
@@ -52,46 +79,54 @@ def Rx(theta: float) -> np.ndarray:
 def calcular_pos_inercial(a, e, v, omega, i, w):
     r = (a * (1 - e**2))/(1 + e * math.cos(v))
 
-    r_pqw = np.array([r * math.cos(v)], [r * math.sin(v)], [0])
+    r_pqw = np.array([[r * math.cos(v)], [r * math.sin(v)], [0]])
 
     Q = Rz(-omega) @ Rx(-i) @ Rz(-w)
 
     r_eci = Q @ r_pqw
 
-load_dotenv()
+    return r_eci
 
-# Coordenadas do observador
-OBS_LATITUDE=-9.39
-OBS_LONGITUDE=-40.50
-OBS_ALTITUDE=376 # Altitude em metros
+# Calcula o tempo sideral local
+def calcular_tempo_sideral(tempo : datetime | None = None):
+    lat = OBS_LATITUDE * u.deg
+    lon = OBS_LONGITUDE * u.deg
 
-# ID do satélite
-NORAD_ID = 47699
+    local = EarthLocation(lat=lat, lon=lon)
 
-API_KEY = os.environ.get("N2YO_API_KEY")
+
+    if tempo:
+        tempo_utc = tempo.astimezone(UTC)
+    else:
+        tempo_utc = datetime.now(UTC)
+
+    tempo_obs = Time(tempo_utc, scale="utc", location=local)
+
+    tempo_sideral = tempo_obs.sidereal_time('apparent')
+
+    return tempo_sideral
+
+def calc_r_estacao():
+    lat = OBS_LATITUDE * u.deg
+    lon = OBS_LONGITUDE * u.deg
+    alt = OBS_ALTITUDE * u.m
+
+    tempo_sideral = calcular_tempo_sideral()
+
+    # Raio de curvatura na vertical primeira
+    N = SEMIEIXO_MAIOR_TERRA / (math.sqrt(1 - PRIMEIRA_EXC_QUAD_TERRA * (math.sen(lat)**2)))
+
+
+
 
 url = f"https://api.n2yo.com/rest/v1/satellite/tle/{NORAD_ID}&apiKey={API_KEY}"
 
 response = requests.get(url).json()
 
 info = response["info"]
-tle = (response["tle"].split("\n")[0][2:], response["tle"].split("\n")[1][2:])
+tle = (response["tle"].split("\n")[0], response["tle"].split("\n")[1])
 
 
 satellite = traduzir_tle(info["satname"], tle)
 
 model = satellite.model
-
-print(f"Número NORAD: {model.satnum}")          # Número de catálogo do satélite
-print(f"Inclinação (rad): {model.inclo}")        # Inclinação em radianos
-print(f"RAAN (rad): {model.nodeo}")             # Ascensão Reta do Nó Ascendente
-print(f"Excentricidade: {model.ecco}")          # Excentricidade orbital
-print(f"Argumento do Perigeu: {model.argpo}")   # Argumento do perigeu (rad)
-print(f"Anomalia Média: {model.mo}")            # Anomalia média (rad)
-print(f"Movimento Médio (rad/min): {model.no_kozai}") # Velocidade angular orbital
-
-anom_excentrica = resolver_kepler(np.radians(model.mo), model.ecco)
-anom_verdadeira = calcular_anom_verdadeira(anom_excentrica, model.ecco)
-
-print(anom_verdadeira)
-
