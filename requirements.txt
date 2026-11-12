@@ -1,0 +1,7 @@
+numpy
+scipy
+astropy
+skyfield
+requests
+python-dotenv
+pytest
