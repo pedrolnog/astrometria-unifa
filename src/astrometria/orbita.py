@@ -7,10 +7,13 @@ import numpy as np
 from astrometria.coordenadas import Rx, Rz
 from astrometria.constantes import MU_TERRA
 
-# Função para prever a posição angular num instante a partir da anomalia média
-# no instante da TLE.
-# Usa a anomalia média, o tempo da TLE, um instante qualquer e
-# a velocidade angular média em rad/s
+"""
+Função para prever a posição angular num instante a partir da anomalia média
+no instante da TLE.
+
+Usa a anomalia média, o tempo da TLE, um instante qualquer e
+a velocidade angular média em rad/s
+"""
 def propagar_anomalia_media(
         anom_media : float,
         tempo_tle : float,
