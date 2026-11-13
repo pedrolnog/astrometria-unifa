@@ -4,12 +4,23 @@ import math
 
 import numpy as np
 
-from src.astrometria.constantes import MU_TERRA
-from src.astrometria.coordenadas import Rx, Rz
+from astrometria.coordenadas import Rx, Rz
+from astrometria.constantes import MU_TERRA
 
-# Próx. passo
-def propagar_anomalia_media():
-    pass
+# Função para prever a posição angular num instante a partir da anomalia média
+# no instante da TLE.
+# Usa a anomalia média, o tempo da TLE, um instante qualquer e
+# a velocidade angular média em rad/s
+def propagar_anomalia_media(
+        anom_media : float,
+        tempo_tle : float,
+        tempo_instante : float,
+        vel_ang_med : float, # Tem que estar em rad/s
+) -> float:
+    delta_t = (tempo_instante - tempo_tle).total_seconds()
+
+    return ((anom_media + vel_ang_med * delta_t) % (2.0 * math.pi))
+
 
 def calcular_semieixo_maior(
     movimento_medio_rad_min: float,

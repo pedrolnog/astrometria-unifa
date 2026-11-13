@@ -3,14 +3,15 @@
 import numpy as np
 from dotenv import load_dotenv
 
-from src.astrometria.constantes import NORAD_ID
-from src.astrometria.coordenadas import calc_r_estacao, calcular_pos_inercial
-from src.astrometria.io_tle import buscar_tle_n2yo, traduzir_tle
-from src.astrometria.observacao import calcular_observacao
-from src.astrometria.orbita import (
+from astrometria.constantes import NORAD_ID
+from astrometria.coordenadas import calc_r_estacao, calcular_pos_inercial
+from astrometria.io_tle import buscar_tle_n2yo, traduzir_tle
+from astrometria.observacao import calcular_observacao
+from astrometria.orbita import (
     calcular_anom_verdadeira,
     calcular_semieixo_maior,
     resolver_kepler,
+    propagar_anomalia_media
 )
 
 
@@ -23,6 +24,9 @@ def main() -> None:
     model = satellite.model
 
     a = calcular_semieixo_maior(model.no_kozai)
+
+    anom_media = propagar_anomalia_media(model.mo, model.epoch)
+
     anom_exc = resolver_kepler(model.mo, model.ecco)
     anom_verdadeira = calcular_anom_verdadeira(model.ecco, anom_exc)
 

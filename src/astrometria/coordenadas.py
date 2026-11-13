@@ -7,7 +7,7 @@ from astropy.coordinates import EarthLocation
 from astropy.time import Time
 import math
 
-from src.astrometria.constantes import (
+from astrometria.constantes import (
     OBS_ALTITUDE,
     OBS_LATITUDE,
     OBS_LONGITUDE,
