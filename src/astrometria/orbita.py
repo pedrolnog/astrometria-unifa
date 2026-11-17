@@ -1,28 +1,19 @@
-"""Cálculos de mecânica orbital e determinação da posição inercial do satélite."""
+"""Cálculos de mecânica orbital e determinação da posição no plano perifocal."""
 
 import math
 
 import numpy as np
 
-from astrometria.coordenadas import Rx, Rz
 from astrometria.constantes import MU_TERRA
 
-"""
-Função para prever a posição angular num instante a partir da anomalia média
-no instante da TLE.
 
-Usa a anomalia média, o tempo da TLE, um instante qualquer e
-a velocidade angular média em rad/s
-"""
 def propagar_anomalia_media(
-        anom_media : float,
-        tempo_tle : float,
-        tempo_instante : float,
-        vel_ang_med : float, # Tem que estar em rad/s
+    anom_media_0: float,
+    vel_ang_med: float,
+    dt_segundos: float,
 ) -> float:
-    delta_t = (tempo_instante - tempo_tle).total_seconds()
-
-    return ((anom_media + vel_ang_med * delta_t) % (2.0 * math.pi))
+    """Propaga a anomalia média (rad) a partir de M0, n (rad/s) e dt (s)."""
+    return float((anom_media_0 + vel_ang_med * dt_segundos) % (2.0 * math.pi))
 
 
 def calcular_semieixo_maior(

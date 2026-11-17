@@ -1,7 +1,6 @@
 """Cálculos de observação astrométrica topocêntrica (visibilidade, RA e Dec)."""
 
 from dataclasses import dataclass
-
 import numpy as np
 
 
@@ -28,12 +27,10 @@ def calcular_observacao(
     visivel = bool(np.dot(r_est, p) > 0)
 
     # Declinação (delta) em [-pi/2, pi/2]
-    dec = float(np.arcsin(L[2]))
+    dec = float(np.arcsin(np.clip(L[2], -1.0, 1.0)))
 
     # Ascensão Reta (alpha) normalizada para [0, 2*pi)
-    ra = float(np.arctan2(L[1], L[0]))
-    if ra < 0:
-        ra += 2.0 * np.pi
+    ra = float(np.arctan2(L[1], L[0]) % (2.0 * np.pi))
 
     return ObservacaoAstrometrica(
         visivel=visivel,
@@ -42,3 +39,27 @@ def calcular_observacao(
         vetor_topocentrico=p,
         direcao=L,
     )
+
+def adicionar_ruido(
+    ra: float,
+    dec: float,
+    sigma_arcsec: float,
+    rng: np.random.Generator | None = None,
+) -> tuple[float, float]:
+    """Adiciona ruído gaussiano isotrópico na esfera celeste às coordenadas (RA, Dec)."""
+    if sigma_arcsec <= 0.0:
+        return float(ra % (2.0 * np.pi)), float(np.clip(dec, -np.pi / 2.0, np.pi / 2.0))
+
+    if rng is None:
+        rng = np.random.default_rng()
+
+    sigma_rad = float(np.radians(sigma_arcsec / 3600.0))
+    sigma_ra = sigma_rad / max(float(np.cos(dec)), 1e-6)
+
+    dec_obs = dec + float(rng.normal(0.0, sigma_rad))
+    ra_obs = ra + float(rng.normal(0.0, sigma_ra))
+
+    ra_obs = float(ra_obs % (2.0 * np.pi))
+    dec_obs = float(np.clip(dec_obs, -np.pi / 2.0, np.pi / 2.0))
+
+    return ra_obs, dec_obs
